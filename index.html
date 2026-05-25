@@ -1,0 +1,1268 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>世紀難題——吃什麼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;700;900&family=Ma+Shan+Zheng&family=Cinzel+Decorative:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f0c060;
+    --gold-dim: #a07830;
+    --teal: #40e0c0;
+    --pink: #ff60a0;
+    --purple: #9060e0;
+    --bg-deep: #050810;
+    --bg-mid: #0a1020;
+    --card-bg: rgba(255,255,255,0.04);
+    --card-border: rgba(255,255,255,0.10);
+    --text-main: #e8e0ff;
+    --text-dim: #8880aa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-deep);
+    color: var(--text-main);
+    font-family: 'Noto Serif TC', serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Starfield ── */
+  #stars-canvas {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  }
+
+  /* ── Header ── */
+  header {
+    position: relative; z-index: 10;
+    text-align: center;
+    padding: 60px 20px 30px;
+  }
+  header .en-sub {
+    font-family: 'Cinzel Decorative', serif;
+    font-size: 11px;
+    letter-spacing: 6px;
+    color: var(--gold-dim);
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  header h1 {
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: clamp(36px, 8vw, 80px);
+    background: linear-gradient(135deg, var(--gold) 0%, #fff8e0 40%, var(--teal) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+    text-shadow: none;
+    letter-spacing: 4px;
+  }
+  header p.tagline {
+    margin-top: 14px;
+    color: var(--text-dim);
+    font-size: 14px;
+    letter-spacing: 3px;
+  }
+
+  /* ── Date badge ── */
+  .date-badge {
+    display: inline-block;
+    margin: 10px auto 0;
+    padding: 4px 18px;
+    border: 1px solid var(--gold-dim);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 2px;
+  }
+
+  /* ── Result Panel ── */
+  #result-panel {
+    display: none;
+    position: relative; z-index: 10;
+    max-width: 700px;
+    margin: 0 auto 40px;
+    padding: 0 20px;
+  }
+  .result-card {
+    background: linear-gradient(135deg, rgba(240,192,96,0.08), rgba(64,224,192,0.06));
+    border: 1px solid rgba(240,192,96,0.3);
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+  }
+  .result-card .result-method {
+    font-size: 11px; letter-spacing: 4px; color: var(--gold); margin-bottom: 8px;
+  }
+  .result-card .result-title {
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: 22px; color: #fff; margin-bottom: 20px;
+  }
+  .meals-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+    margin-bottom: 20px;
+  }
+  .meal-item {
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px; padding: 14px 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+  .meal-label {
+    font-size: 10px; letter-spacing: 2px; color: var(--text-dim); margin-bottom: 6px;
+  }
+  .meal-name {
+    font-size: 18px; color: var(--gold);
+    font-family: 'Ma Shan Zheng', serif;
+  }
+  .result-note {
+    font-size: 13px; color: var(--text-dim); line-height: 1.8;
+    font-style: italic;
+  }
+
+  /* ── Methods Grid ── */
+  .section-label {
+    position: relative; z-index: 10;
+    text-align: center;
+    font-size: 11px; letter-spacing: 5px; color: var(--text-dim);
+    margin-bottom: 24px;
+  }
+  .methods-grid {
+    position: relative; z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 14px;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 20px;
+  }
+  .method-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 22px 14px 18px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    position: relative;
+    overflow: hidden;
+  }
+  .method-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 0%, var(--accent-color, rgba(240,192,96,0.15)), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .method-card:hover:not(.used) {
+    transform: translateY(-4px) scale(1.03);
+    border-color: var(--accent-color, var(--gold));
+    box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  }
+  .method-card:hover:not(.used)::before { opacity: 1; }
+  .method-card.used {
+    opacity: 0.75; cursor: pointer;
+    border-color: rgba(240,192,96,0.2);
+  }
+  .method-card .icon {
+    font-size: 36px; margin-bottom: 10px;
+    display: block;
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.2));
+  }
+  .method-card .method-name {
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: 16px; color: #fff; margin-bottom: 4px;
+  }
+  .method-card .method-desc {
+    font-size: 10px; color: var(--text-dim); letter-spacing: 1px; line-height: 1.5;
+  }
+  .method-card .badge-daily {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(144,96,224,0.3);
+    border: 1px solid rgba(144,96,224,0.5);
+    border-radius: 6px;
+    font-size: 9px; padding: 2px 6px; color: #c0a0ff;
+    letter-spacing: 1px;
+  }
+  .method-card .badge-used {
+    position: absolute; top: 10px; right: 10px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 6px;
+    font-size: 9px; padding: 2px 6px; color: var(--text-dim);
+  }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(5,8,16,0.92);
+    backdrop-filter: blur(8px);
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: linear-gradient(160deg, #0d1530, #08101e);
+    border: 1px solid rgba(240,192,96,0.2);
+    border-radius: 24px;
+    padding: 40px;
+    max-width: 480px; width: 90%;
+    position: relative;
+    animation: modalIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes modalIn {
+    from { transform: scale(0.8) translateY(30px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 20px;
+    background: none; border: none; color: var(--text-dim);
+    font-size: 24px; cursor: pointer; line-height: 1;
+  }
+  .modal-close:hover { color: #fff; }
+  .modal h2 {
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: 26px; margin-bottom: 6px; color: var(--gold);
+    text-align: center;
+  }
+  .modal .modal-sub {
+    text-align: center; font-size: 12px; color: var(--text-dim);
+    margin-bottom: 28px; letter-spacing: 2px;
+  }
+  /* Modal content areas */
+  .modal-body { min-height: 180px; }
+
+  /* Zodiac / Shengxiao / MBTI selectors */
+  .select-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(70px,1fr));
+    gap: 8px; margin-bottom: 20px;
+  }
+  .select-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 8px 4px;
+    color: var(--text-main);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: 'Noto Serif TC', serif;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .select-btn:hover, .select-btn.active {
+    background: rgba(240,192,96,0.15);
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+
+  /* Dice */
+  #dice-display {
+    text-align: center; padding: 20px 0;
+  }
+  #dice-face {
+    font-size: 90px; display: block;
+    transition: transform 0.1s;
+    filter: drop-shadow(0 0 20px rgba(240,192,96,0.4));
+  }
+  #dice-display p { color: var(--text-dim); font-size: 13px; margin-top: 10px; }
+
+  /* Wheel */
+  #wheel-wrap { text-align: center; }
+  #wheel-canvas { border-radius: 50%; margin: 0 auto; display: block; }
+  #wheel-pointer {
+    font-size: 32px; line-height: 1;
+    margin: -16px auto 10px;
+    filter: drop-shadow(0 0 6px rgba(255,96,160,0.6));
+  }
+
+  /* Tarot */
+  .tarot-cards {
+    display: flex; gap: 12px; justify-content: center;
+    margin-bottom: 16px;
+  }
+  .tarot-card {
+    width: 70px; height: 110px;
+    background: linear-gradient(135deg, #1a0a30, #0d1540);
+    border: 2px solid rgba(144,96,224,0.4);
+    border-radius: 8px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+    transition: all 0.3s;
+    position: relative; overflow: hidden;
+  }
+  .tarot-card::before {
+    content: '✦';
+    position: absolute; font-size: 60px;
+    color: rgba(144,96,224,0.1);
+  }
+  .tarot-card:hover { transform: translateY(-8px); border-color: var(--purple); }
+  .tarot-card.flipped {
+    background: linear-gradient(135deg, #2a1050, #1a2060);
+    border-color: var(--gold);
+    pointer-events: none;
+  }
+  #tarot-hint { text-align: center; font-size: 12px; color: var(--text-dim); }
+
+  /* Fortune sticks */
+  #sticks-wrap { text-align: center; padding: 10px 0; }
+  #stick-container {
+    font-size: 60px; margin: 10px auto;
+    filter: drop-shadow(0 0 12px rgba(240,192,96,0.3));
+    cursor: pointer;
+    display: inline-block;
+    transition: transform 0.15s;
+    user-select: none;
+  }
+  #stick-container:active { transform: rotate(-5deg) scale(0.95); }
+  #stick-result { font-family: 'Ma Shan Zheng',serif; font-size: 18px; color: var(--gold); margin: 10px 0; min-height: 28px; }
+
+  /* Pendulum */
+  #pendulum-wrap { text-align: center; }
+  #pendulum-svg { display: block; margin: 0 auto; }
+  #pendulum-question { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; }
+
+  /* Crystal ball */
+  #crystal-wrap { text-align: center; }
+  #crystal-ball {
+    width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.3), rgba(64,224,192,0.1) 40%, rgba(144,96,224,0.05));
+    border: 2px solid rgba(64,224,192,0.3);
+    margin: 0 auto 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: rgba(64,224,192,0.6);
+    cursor: pointer;
+    box-shadow: 0 0 40px rgba(64,224,192,0.15), inset 0 0 30px rgba(144,96,224,0.1);
+    transition: all 0.4s;
+    font-family: 'Ma Shan Zheng', serif;
+    user-select: none;
+  }
+  #crystal-ball:hover { box-shadow: 0 0 60px rgba(64,224,192,0.3), inset 0 0 40px rgba(144,96,224,0.2); }
+
+  /* Submit btn */
+  .modal-submit {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, rgba(240,192,96,0.2), rgba(64,224,192,0.15));
+    border: 1px solid rgba(240,192,96,0.4);
+    border-radius: 12px;
+    color: var(--gold);
+    font-family: 'Ma Shan Zheng', serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 10px;
+  }
+  .modal-submit:hover {
+    background: linear-gradient(135deg, rgba(240,192,96,0.3), rgba(64,224,192,0.25));
+    box-shadow: 0 0 20px rgba(240,192,96,0.2);
+    transform: translateY(-2px);
+  }
+  .modal-submit:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  /* Loading animation */
+  @keyframes reveal { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .animate-in { animation: reveal 0.6s ease forwards; }
+
+  /* Divider */
+  .mystic-divider {
+    position: relative; z-index: 10;
+    text-align: center;
+    color: var(--gold-dim);
+    letter-spacing: 8px;
+    font-size: 12px;
+    margin: 40px 0 28px;
+  }
+
+  /* Footer */
+  footer {
+    position: relative; z-index: 10;
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 2px;
+  }
+
+  /* Reset btn */
+  .reset-btn {
+    display: block;
+    margin: 0 auto 20px;
+    background: none;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 6px 18px;
+    color: var(--text-dim);
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.2s;
+  }
+  .reset-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+  /* Glow pulse */
+  @keyframes glow-pulse {
+    0%,100% { text-shadow: 0 0 10px rgba(240,192,96,0.3); }
+    50% { text-shadow: 0 0 25px rgba(240,192,96,0.7), 0 0 50px rgba(240,192,96,0.3); }
+  }
+  header h1 { animation: none; }
+
+  /* Orbiting dots */
+  .orbit-ring {
+    position: fixed; top: 50%; left: 50%;
+    width: 600px; height: 600px;
+    margin: -300px 0 0 -300px;
+    border-radius: 50%;
+    border: 1px solid rgba(240,192,96,0.03);
+    animation: orbit 60s linear infinite;
+    z-index: 1; pointer-events: none;
+  }
+  @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .shake {
+    animation: shake 0.5s;
+  }
+  @keyframes shake {
+    0%,100%{transform:rotate(0)}20%{transform:rotate(-10deg)}40%{transform:rotate(10deg)}60%{transform:rotate(-6deg)}80%{transform:rotate(6deg)}
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars-canvas"></canvas>
+<div class="orbit-ring"></div>
+
+<header>
+  <div class="en-sub">The Century Dilemma</div>
+  <h1>今天——吃什麼</h1>
+  <p class="tagline">以玄學之名，解決人類最難的問題</p>
+  <div class="date-badge" id="today-date"></div>
+</header>
+
+<!-- Result Panel -->
+<div id="result-panel">
+  <div class="result-card animate-in">
+    <div class="result-method" id="result-method-label">✦ 星座運勢占卜 ✦</div>
+    <div class="result-title" id="result-title">今日三餐天機已定</div>
+    <div class="meals-grid">
+      <div class="meal-item">
+        <div class="meal-label">早 餐</div>
+        <div class="meal-name" id="meal-breakfast">—</div>
+      </div>
+      <div class="meal-item">
+        <div class="meal-label">午 餐</div>
+        <div class="meal-name" id="meal-lunch">—</div>
+      </div>
+      <div class="meal-item">
+        <div class="meal-label">晚 餐</div>
+        <div class="meal-name" id="meal-dinner">—</div>
+      </div>
+    </div>
+    <div class="result-note" id="result-note">天機不可洩漏太多……</div>
+  </div>
+</div>
+
+<div class="mystic-divider">✦ 選擇你的占卜方式 ✦</div>
+<div class="section-label">每日限定方式結果每天固定，可反覆查看</div>
+
+<div class="methods-grid" id="methods-grid"></div>
+
+<div style="position:relative;z-index:10;text-align:center;margin-top:28px;">
+  <button class="reset-btn" onclick="devReset()">🔄 重置今日記錄（測試用）</button>
+</div>
+
+<footer>
+  ✦ 本站所有占卜結果純屬娛樂，如有雷同，實屬天意 ✦
+</footer>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()">×</button>
+    <h2 id="modal-title">占卜</h2>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-body" id="modal-body"></div>
+    <button class="modal-submit" id="modal-submit" onclick="submitModal()">✦ 啟示命運 ✦</button>
+  </div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+// DATA
+// ─────────────────────────────────────────────
+const FOODS = {
+  breakfast: [
+    // 台灣 / 中式
+    '豆漿油條','小籠包','鹹豆漿','蛋餅','飯糰','燒餅夾蛋','蔥油餅','饅頭夾蛋','煎餃','米漿','地瓜粥','包子','稀飯配醬瓜','芝麻球',
+    // 日式
+    '日式玉子燒定食','納豆飯','味噌湯套餐','鮭魚茶泡飯','日式厚鬆餅','和風烤飯糰',
+    // 韓式
+    '韓式海苔飯卷','泡菜炒飯','韓式雞蛋糕','甜南瓜粥',
+    // 西式
+    '法式可頌','班尼迪克蛋','紐約式貝果夾燻鮭','英式Full Breakfast','比利時鬆餅','法式薄餅','阿伏卡多吐司',
+    // 東南亞
+    '越南法棍三明治','印尼炒飯','泰式炒河粉','馬來西亞咖椰吐司','新加坡肉骨茶',
+    // 中東 / 南亞
+    '印度恰巴提配咖哩','以色列沙拉配皮塔餅','土耳其起司煎蛋',
+    // 美洲
+    '墨西哥玉米捲餅','美式鬆餅配楓糖漿','巴西木薯餅',
+  ],
+  lunch: [
+    // 台灣 / 中式
+    '雞腿便當','排骨飯','麻婆豆腐','牛肉麵','炸雞排飯','刈包','蚵仔麵線','滷肉飯','宮保雞丁','鍋貼','炸醬麵','砂鍋魚頭','鹽水雞','蝦仁炒飯',
+    // 日式
+    '日式拉麵','豚骨叉燒麵','味噌拉麵','壽司拼盤','天婦羅定食','鰻魚飯','親子丼','豬排丼','海鮮蕎麥麵','炸雞唐揚套餐',
+    // 韓式
+    '韓式石鍋拌飯','部隊鍋','韓式炸雞','冷麵','參雞湯','辣炒年糕','豆腐鍋',
+    // 東南亞
+    '越南河粉','泰式綠咖哩飯','泰式打拋豬飯','新加坡海南雞飯','馬來西亞叻沙','印尼沙嗲串','緬甸薑黃雞湯麵',
+    // 南亞
+    '印度香料烤雞配烤餅','印式奶油雞咖哩飯','斯里蘭卡椰奶咖哩',
+    // 中東
+    '以色列沙瓦瑪','黎巴嫩烤肉串配皮塔','土耳其烤肉飯','摩洛哥塔吉鍋',
+    // 歐式
+    '義大利肉醬麵','義大利白酒蛤蜊麵','西班牙海鮮燉飯','法式洋蔥湯配麵包','希臘沙拉配烤羊排','德式香腸薯條','英式魚薯條',
+    // 美洲
+    '美式漢堡','墨西哥塔可','秘魯酸橘汁醃魚','巴西烤肉','古巴三明治',
+    // 非洲
+    '摩洛哥庫斯庫斯','衣索比亞英傑拉配燉菜',
+  ],
+  dinner: [
+    // 台灣 / 中式
+    '火鍋','薑母鴨','羊肉爐','熱炒','臭豆腐','三杯雞','蒜泥白肉','紅燒魚','佛跳牆','蟹黃豆腐','打邊爐','麻辣香鍋','清蒸螃蟹','東坡肉','白斬雞','梅菜扣肉',
+    // 日式
+    '日式涮涮鍋','博多水炊鍋','大阪燒','廣島燒','北海道螃蟹鍋','烤爐端燒','居酒屋套餐','串燒盛合','帝王蟹刺身','北海道海膽飯',
+    // 韓式
+    '韓式烤牛肉','韓式部隊火鍋','海鮮煎餅','韓國泡菜鍋','安東燉雞',
+    // 東南亞
+    '泰式酸辣海鮮湯','峇里島烤乳豬','越南生春捲配烤肉','馬來西亞肉骨茶','印尼仁當牛肉','菲律賓阿斗波燉肉',
+    // 南亞
+    '印度坦都里烤全雞','尼泊爾羊肉達爾湯','孟加拉芥末魚咖哩',
+    // 中東
+    '伊朗藏紅花燉羊肉','黎巴嫩梅茲拼盤','以色列烤蔬菜配沙嗲醬','埃及烤鴿子',
+    // 歐式
+    '法式紅酒燉牛肉','西班牙烤乳豬','義大利佛羅倫斯牛排','希臘烤羊腿','葡萄牙蒜味烤雞','德式豬腳配酸菜','北歐煙燻鮭魚配時蔬','英式約克郡布丁烤肉',
+    // 美洲
+    '美式BBQ豬肋排','墨西哥燉豬肉塔可','阿根廷烤牛排','秘魯烤雞','巴西黑豆燉肉',
+    // 非洲
+    '摩洛哥蜂蜜羊肉燉鍋','南非烤肉串配沙拉',
+    // 融合 / 特色
+    '台式薑汁燒肉韓國石鍋拌飯','港式避風塘炒蟹','澳門葡式蛋撻配雞肉',
+  ],
+};
+
+function pickMeals(seed) {
+  function seededRand(s) {
+    let x = Math.sin(s) * 10000;
+    return x - Math.floor(x);
+  }
+  const r1 = Math.floor(seededRand(seed * 7 + 1) * FOODS.breakfast.length);
+  const r2 = Math.floor(seededRand(seed * 13 + 3) * FOODS.lunch.length);
+  const r3 = Math.floor(seededRand(seed * 17 + 7) * FOODS.dinner.length);
+  return {
+    breakfast: FOODS.breakfast[r1],
+    lunch: FOODS.lunch[r2],
+    dinner: FOODS.dinner[r3]
+  };
+}
+
+// ─────────────────────────────────────────────
+// METHODS CONFIG
+// ─────────────────────────────────────────────
+const METHODS = [
+  {
+    id: 'zodiac', name: '星座運勢', icon: '♈', desc: '十二星座天象指引', daily: true,
+    accent: 'rgba(144,96,224,0.3)',
+    label: '星座占卜', sub: '選擇你的星座，讓天象指引今日食緣',
+    type: 'zodiac',
+    options: ['牡羊♈','金牛♉','雙子♊','巨蟹♋','獅子♌','處女♍','天秤♎','天蠍♏','射手♐','摩羯♑','水瓶♒','雙魚♓'],
+    notes: ['今日火星眷顧，適合大補元氣','金星護持，選食宜清淡養顏','水星運轉，腦力消耗需補充能量','月亮守護，宜溫補暖胃','太陽光芒，元氣旺盛大食無礙','土星穩固，宜健康均衡飲食','天秤平衡，今日適合中西混搭','冥王神秘，重口味之日','木星膨脹，食量或倍增','山羊攀高，宜吃給自己能量','天王反轉，嘗試從未吃過的食物','海王夢幻，海鮮或流食最合宜'],
+  },
+  {
+    id: 'shengxiao', name: '生肖運勢', icon: '🐉', desc: '十二生肖命格對應', daily: true,
+    accent: 'rgba(240,192,96,0.2)',
+    label: '生肖占卜', sub: '依生肖命格，尋今日最佳食物相性',
+    type: 'shengxiao',
+    options: ['鼠🐀','牛🐂','虎🐯','兔🐰','龍🐲','蛇🐍','馬🐴','羊🐏','猴🐒','雞🐓','狗🐕','豬🐷'],
+    notes: ['鼠靈巧，食材宜多樣精緻','牛踏實，份量要足、味道要醇','虎威猛，今日適合大塊肉食','兔溫柔，清淡蔬食最相宜','龍騰飛，食要豐盛氣宇軒昂','蛇蛻變，辛辣食物助你蛻變','馬奔騰，高蛋白補充能量','羊溫和，羊肉或甜品皆宜','猴機靈，多元口味不設限','雞吉利，飛禽之食帶來好運','狗忠誠，家常料理最暖心','豬知足，今日豐盛大吃一頓'],
+  },
+  {
+    id: 'mbti', name: 'MBTI性格', icon: '🧠', desc: '16型人格飲食密碼', daily: true,
+    accent: 'rgba(64,224,192,0.2)',
+    label: 'MBTI 飲食密碼', sub: '人格類型決定今日最適合的飲食風格',
+    type: 'mbti',
+    options: ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP','ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'],
+    notes: {
+      INTJ:'戰略家今日需補腦，適合omega-3豐富的深海魚類', INTP:'邏輯學家沉浸思考，一邊吃一邊思考的輕食最適合',
+      ENTJ:'指揮官時間珍貴，高效補充能量的重口味正餐', ENTP:'辯論家喜歡挑戰，今日嘗試從未吃過的新奇料理',
+      INFJ:'倡導者靈感充沛，有故事的傳統料理最滋養靈魂', INFP:'調停者感受豐富，色彩鮮豔的食物帶來美好心情',
+      ENFJ:'主人公關懷他人，不如邀朋友一起吃頓熱鬧的', ENFP:'競選者熱情四射，街頭小吃充滿生命力最對味',
+      ISTJ:'物流師注重規律，今日吃熟悉的老店最令人安心', ISFJ:'守衛者溫柔體貼，家常暖食是今日最好的選擇',
+      ESTJ:'總經理效率第一，定食套餐省時又滿足', ESFJ:'執政官重視和諧，和家人或朋友共享同一道菜',
+      ISTP:'鑒賞家動手實作，適合自己動手的火鍋或燒烤', ISFP:'探險家享受當下，美食照片拍起來的網紅料理',
+      ESTP:'企業家追求刺激，今日挑戰超辣或超酸的極限食物', ESFP:'表演者活在當下，熱鬧的聚餐或派對食物最適合',
+    },
+  },
+  {
+    id: 'tarot', name: '塔羅抽卡', icon: '🃏', desc: '神秘牌陣指引三餐', daily: false,
+    accent: 'rgba(255,96,160,0.2)',
+    label: '塔羅牌陣', sub: '心中默想「今天吃什麼」，抽出你的命運之牌',
+    type: 'tarot',
+  },
+  {
+    id: 'dice', name: '命運骰子', icon: '🎲', desc: '六面骰決定今日食緣', daily: false,
+    accent: 'rgba(64,224,192,0.2)',
+    label: '命運骰子', sub: '擲出骰子，讓隨機的宇宙決定你的菜單',
+    type: 'dice',
+  },
+  {
+    id: 'wheel', name: '神諭轉盤', icon: '🎡', desc: '旋轉中尋找命中注定', daily: false,
+    accent: 'rgba(240,192,96,0.2)',
+    label: '神諭轉盤', sub: '旋轉命運之輪，靜待指針停下的那一刻',
+    type: 'wheel',
+  },
+  {
+    id: 'sticks', name: '求籤占卜', icon: '🪬', desc: '傳統籤詩指引飲食', daily: false,
+    accent: 'rgba(255,96,160,0.15)',
+    label: '求籤問食', sub: '虔心搖籤，讓神明指引今日飲食',
+    type: 'sticks',
+  },
+  {
+    id: 'crystal', name: '水晶球', icon: '🔮', desc: '凝視水晶感知食緣', daily: false,
+    accent: 'rgba(64,224,192,0.15)',
+    label: '水晶球感應', sub: '靜心凝視水晶球，感知今日飲食之靈',
+    type: 'crystal',
+  },
+  {
+    id: 'pendulum', name: '靈擺占卜', icon: '🪬', desc: '鐘擺感應潛意識選擇', daily: false,
+    accent: 'rgba(144,96,224,0.2)',
+    label: '靈擺感應', sub: '靜心觀察靈擺，讓潛意識告訴你答案',
+    type: 'pendulum',
+  },
+  {
+    id: 'bazi', name: '八字命盤', icon: '☯️', desc: '生辰八字推算今日食補', daily: true,
+    accent: 'rgba(240,192,96,0.15)',
+    label: '八字推命', sub: '以生辰月份推算今日所需補充的食物屬性',
+    type: 'bazi',
+    options: ['一月','二月','三月','四月','五月','六月','七月','八月','九月','十月','十一月','十二月'],
+    notes: ['一月寒冬，宜溫補羊肉薑湯驅寒','二月乍暖，宜清補豆腐蔬菜打底','三月春發，宜舒肝理氣的酸味食物','四月陽升，宜補脾養胃的黃色食物','五月入夏，宜清心降火的苦瓜蓮子','六月盛夏，宜解暑清熱的冷飲涼食','七月中伏，宜以溫補對抗空調寒氣','八月漸涼，宜益氣補肺的白色食物','九月秋燥，宜滋陰潤燥的梨子蜂蜜','十月深秋，宜補腎強骨的黑色食物','十一月寒至，宜溫腎助陽的堅果薑料','十二月大寒，宜大補元氣迎接新年'],
+  },
+];
+
+// ─────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────
+const TODAY = new Date().toDateString();
+let usedDaily = JSON.parse(localStorage.getItem('eatwhat_daily_' + TODAY) || '{}');
+let currentMethod = null;
+let modalState = {};
+
+function saveUsed() {
+  localStorage.setItem('eatwhat_daily_' + TODAY, JSON.stringify(usedDaily));
+}
+
+function devReset() {
+  localStorage.removeItem('eatwhat_daily_' + TODAY);
+  usedDaily = {};
+  renderGrid();
+  document.getElementById('result-panel').style.display = 'none';
+}
+
+// ─────────────────────────────────────────────
+// STARS
+// ─────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('stars-canvas');
+  const ctx = canvas.getContext('2d');
+  let stars = [];
+  function resize() {
+    canvas.width = innerWidth; canvas.height = innerHeight;
+    stars = Array.from({length: 200}, () => ({
+      x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.3, a: Math.random(), da: (Math.random()-0.5)*0.005,
+    }));
+  }
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    stars.forEach(s => {
+      s.a = Math.max(0.1, Math.min(1, s.a + s.da));
+      if (s.a <= 0.1 || s.a >= 1) s.da *= -1;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,240,${s.a})`;
+      ctx.fill();
+    });
+    requestAnimationFrame(draw);
+  }
+  resize(); draw();
+  window.addEventListener('resize', resize);
+})();
+
+// ─────────────────────────────────────────────
+// DATE
+// ─────────────────────────────────────────────
+(function(){
+  const d = new Date();
+  const s = `${d.getFullYear()} 年 ${d.getMonth()+1} 月 ${d.getDate()} 日`;
+  document.getElementById('today-date').textContent = s;
+})();
+
+// ─────────────────────────────────────────────
+// RENDER GRID
+// ─────────────────────────────────────────────
+function renderGrid() {
+  const grid = document.getElementById('methods-grid');
+  grid.innerHTML = '';
+  METHODS.forEach(m => {
+    const isUsed = m.daily && usedDaily[m.id];
+    const card = document.createElement('div');
+    card.className = 'method-card';
+    card.style.setProperty('--accent-color', m.accent);
+    card.innerHTML = `
+      ${m.daily ? `<span class="${isUsed?'badge-used':'badge-daily'}">${isUsed?'✓ 查看今日結果':'每日限定'}</span>` : ''}
+      <span class="icon">${m.icon}</span>
+      <div class="method-name">${m.name}</div>
+      <div class="method-desc">${m.desc}</div>
+    `;
+    card.onclick = () => {
+      if (isUsed) {
+        replayDailyResult(m);
+      } else {
+        openModal(m);
+      }
+    };
+    grid.appendChild(card);
+  });
+}
+
+function replayDailyResult(m) {
+  const saved = usedDaily[m.id];
+  if (!saved) return;
+  showResult(m, saved.title, saved.note, saved.seed);
+}
+
+renderGrid();
+
+// ─────────────────────────────────────────────
+// SHOW RESULT
+// ─────────────────────────────────────────────
+function showResult(method, title, note, seed) {
+  const meals = pickMeals(seed);
+  document.getElementById('result-method-label').textContent = `✦ ${method.name} ✦`;
+  document.getElementById('result-title').textContent = title;
+  document.getElementById('meal-breakfast').textContent = meals.breakfast;
+  document.getElementById('meal-lunch').textContent = meals.lunch;
+  document.getElementById('meal-dinner').textContent = meals.dinner;
+  document.getElementById('result-note').textContent = note;
+  const panel = document.getElementById('result-panel');
+  panel.style.display = 'block';
+  panel.scrollIntoView({behavior:'smooth', block:'center'});
+  // re-animate
+  const card = panel.querySelector('.result-card');
+  card.classList.remove('animate-in');
+  void card.offsetWidth;
+  card.classList.add('animate-in');
+}
+
+// ─────────────────────────────────────────────
+// MODAL
+// ─────────────────────────────────────────────
+function openModal(method) {
+  currentMethod = method;
+  modalState = {};
+  document.getElementById('modal-title').textContent = method.label;
+  document.getElementById('modal-sub').textContent = method.sub;
+  const submit = document.getElementById('modal-submit');
+  submit.disabled = true;
+  submit.textContent = '✦ 啟示命運 ✦';
+
+  const body = document.getElementById('modal-body');
+  body.innerHTML = '';
+
+  switch(method.type) {
+    case 'zodiac': case 'shengxiao': case 'bazi': renderSelectModal(method); break;
+    case 'mbti': renderMBTIModal(method); break;
+    case 'dice': renderDiceModal(); break;
+    case 'wheel': renderWheelModal(); break;
+    case 'tarot': renderTarotModal(); break;
+    case 'sticks': renderSticksModal(); break;
+    case 'crystal': renderCrystalModal(); break;
+    case 'pendulum': renderPendulumModal(); break;
+  }
+
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  currentMethod = null;
+}
+document.getElementById('modal-overlay').addEventListener('click', function(e){
+  if (e.target === this) closeModal();
+});
+
+// ─────────────────────────────────────────────
+// SELECT MODAL (zodiac / shengxiao / bazi)
+// ─────────────────────────────────────────────
+function renderSelectModal(method) {
+  const body = document.getElementById('modal-body');
+  const grid = document.createElement('div');
+  grid.className = 'select-grid';
+  method.options.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'select-btn';
+    btn.textContent = opt;
+    btn.onclick = () => {
+      grid.querySelectorAll('.select-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      modalState.index = i;
+      modalState.label = opt;
+      document.getElementById('modal-submit').disabled = false;
+    };
+    grid.appendChild(btn);
+  });
+  body.appendChild(grid);
+}
+
+// ─────────────────────────────────────────────
+// MBTI MODAL
+// ─────────────────────────────────────────────
+function renderMBTIModal(method) {
+  const body = document.getElementById('modal-body');
+  const grid = document.createElement('div');
+  grid.className = 'select-grid';
+  method.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'select-btn';
+    btn.textContent = opt;
+    btn.onclick = () => {
+      grid.querySelectorAll('.select-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      modalState.label = opt;
+      document.getElementById('modal-submit').disabled = false;
+    };
+    grid.appendChild(btn);
+  });
+  body.appendChild(grid);
+}
+
+// ─────────────────────────────────────────────
+// DICE MODAL
+// ─────────────────────────────────────────────
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+function renderDiceModal() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div id="dice-display">
+      <span id="dice-face">🎲</span>
+      <p>點擊骰子三次，命運將揭曉</p>
+      <p id="dice-count" style="color:var(--gold);margin-top:6px;font-size:14px;"></p>
+    </div>
+  `;
+  let rolls = []; let rolling = false;
+  document.getElementById('dice-face').onclick = function() {
+    if (rolls.length >= 3 || rolling) return;
+    rolling = true;
+    const face = document.getElementById('dice-face');
+    let count = 0;
+    const interval = setInterval(() => {
+      face.textContent = DICE_FACES[Math.floor(Math.random()*6)];
+      count++;
+      if (count > 10) {
+        clearInterval(interval);
+        const val = Math.floor(Math.random()*6);
+        face.textContent = DICE_FACES[val];
+        rolls.push(val+1);
+        document.getElementById('dice-count').textContent = `第 ${rolls.length} 次 · 點數：${rolls.join(' + ')}`;
+        rolling = false;
+        if (rolls.length === 3) {
+          modalState.seed = rolls.reduce((a,b)=>a+b,0);
+          document.getElementById('modal-submit').disabled = false;
+        }
+      }
+    }, 60);
+  };
+}
+
+// ─────────────────────────────────────────────
+// WHEEL MODAL
+// ─────────────────────────────────────────────
+const WHEEL_ITEMS = ['清淡系','大肉系','海鮮系','蔬食系','辛辣系','甜食系','湯品系','異國系'];
+const WHEEL_COLORS = ['#9060e0','#40e0c0','#ff60a0','#f0c060','#60a0ff','#ff9040','#80e060','#e060c0'];
+
+function renderWheelModal() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div id="wheel-wrap">
+      <div id="wheel-pointer">▼</div>
+      <canvas id="wheel-canvas" width="220" height="220"></canvas>
+      <p id="wheel-status" style="color:var(--text-dim);font-size:12px;margin-top:12px;">點擊轉盤開始旋轉</p>
+    </div>
+  `;
+  const canvas = document.getElementById('wheel-canvas');
+  const ctx = canvas.getContext('2d');
+  let angle = 0; let spinning = false;
+
+  function drawWheel(a) {
+    const n = WHEEL_ITEMS.length;
+    const slice = (2 * Math.PI) / n;
+    const cx = 110, cy = 110, r = 105;
+    ctx.clearRect(0,0,220,220);
+    for (let i=0;i<n;i++) {
+      const start = a + i*slice;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,r,start,start+slice);
+      ctx.closePath();
+      ctx.fillStyle = WHEEL_COLORS[i];
+      ctx.fill();
+      ctx.strokeStyle = '#050810'; ctx.lineWidth = 2; ctx.stroke();
+      ctx.save();
+      ctx.translate(cx,cy);
+      ctx.rotate(start + slice/2);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 12px "Noto Serif TC"';
+      ctx.fillText(WHEEL_ITEMS[i], r-8, 5);
+      ctx.restore();
+    }
+    // center
+    ctx.beginPath(); ctx.arc(cx,cy,14,0,Math.PI*2);
+    ctx.fillStyle = '#050810'; ctx.fill();
+    ctx.strokeStyle = 'rgba(240,192,96,0.5)'; ctx.lineWidth=2; ctx.stroke();
+  }
+
+  drawWheel(0);
+
+  canvas.onclick = function() {
+    if (spinning || modalState.category) return;
+    spinning = true;
+    document.getElementById('wheel-status').textContent = '命運之輪正在旋轉…';
+    const totalRotation = (Math.random()*4+4) * Math.PI * 2;
+    const duration = 3000;
+    const start = performance.now();
+    function animate(now) {
+      const t = (now - start) / duration;
+      if (t >= 1) {
+        angle = totalRotation % (Math.PI*2);
+        drawWheel(angle);
+        const n = WHEEL_ITEMS.length;
+        const slice = (2*Math.PI)/n;
+        // pointer at top = 3π/2 from angle perspective, find which segment
+        const ptr = (Math.PI*2*2 - angle + Math.PI*3/2) % (Math.PI*2);
+        const idx = Math.floor(ptr / slice) % n;
+        modalState.category = WHEEL_ITEMS[idx];
+        modalState.seed = Math.floor(Math.random()*9999);
+        document.getElementById('wheel-status').textContent = `✦ 命運選擇：${WHEEL_ITEMS[idx]} ✦`;
+        document.getElementById('modal-submit').disabled = false;
+        spinning = false;
+        return;
+      }
+      // ease out
+      const eased = 1 - Math.pow(1-t, 3);
+      drawWheel(eased * totalRotation);
+      requestAnimationFrame(animate);
+    }
+    requestAnimationFrame(animate);
+  };
+}
+
+// ─────────────────────────────────────────────
+// TAROT MODAL
+// ─────────────────────────────────────────────
+const TAROT_NAMES = ['愚者','魔術師','女祭司','皇后','皇帝','教皇','戀人','戰車','力量','隱士','命運之輪','正義','倒吊人','死神','節制','惡魔','高塔','星星','月亮','太陽','審判','世界'];
+const TAROT_EMOJI = ['🃏','🎩','🌙','👑','⚔️','🕍','❤️','🏆','💪','🕯️','☸️','⚖️','🙃','💀','💧','👹','⚡','⭐','🌊','☀️','📯','🌍'];
+const TAROT_NOTES = {
+  '愚者':'愚者出現，代表今日宜冒險嘗試未知食物，踏上全新的飲食旅程！',
+  '魔術師':'魔術師引導你運用手邊食材，自製料理最能展現今日靈感。',
+  '女祭司':'女祭司之日，傾聽身體直覺，選擇直覺第一個想到的食物。',
+  '皇后':'皇后豐盛富饒，今日宜享受豐盛的饗宴，不要委屈自己。',
+  '皇帝':'皇帝之力，選擇有分量感的主食，奠定一天的基礎。',
+  '教皇':'教皇傳統智慧，今日宜選擇傳統料理或老店老味道。',
+  '戀人':'戀人牌出現，找人一起吃飯，或選擇浪漫的約會餐廳。',
+  '戰車':'戰車前進，今日選擇能快速補充能量的食物衝刺目標。',
+  '力量':'力量牌引導補充蛋白質，今日需要滋補強壯的食物。',
+  '隱士':'隱士獨處，今日宜選擇一個人靜靜享用的料理。',
+  '命運之輪':'命運之輪轉動，今日飲食充滿驚喜，隨機選擇最對味！',
+  '正義':'正義平衡，今日注重營養均衡，五大類食物都要攝取。',
+  '倒吊人':'倒吊人視角不同，今日嘗試顛倒常規，早餐吃晚餐菜色。',
+  '死神':'死神代表轉化，今日戒掉一種不健康食物，開啟新飲食習慣。',
+  '節制':'節制之牌，今日飲食分量適中，不過飽不過飢。',
+  '惡魔':'惡魔誘惑，今日可以放縱一次，吃你最愛但平時剋制的食物。',
+  '高塔':'高塔衝擊，今日打破飲食慣例，挑戰從未嘗試的料理！',
+  '星星':'星星希望，今日補充維生素，選擇蔬果豐富的清爽料理。',
+  '月亮':'月亮幻境，今日食欲可能不穩定，選擇易消化的食物。',
+  '太陽':'太陽光明，今日飲食充滿活力，選擇色彩豐富的食材！',
+  '審判':'審判覺醒，今日重新審視飲食習慣，選擇最滋養靈魂的食物。',
+  '世界':'世界完整，今日可以嘗試異國料理，體驗世界的豐富滋味！',
+};
+
+function renderTarotModal() {
+  const body = document.getElementById('modal-body');
+  // Shuffle cards
+  const deck = Array.from({length:22},(_,i)=>i);
+  for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];}
+  const three = deck.slice(0,3);
+  let flipped = 0;
+
+  body.innerHTML = `
+    <div class="tarot-cards" id="tarot-cards"></div>
+    <div id="tarot-hint">點擊三張牌中的任意一張，讓塔羅為你指路</div>
+  `;
+  const cardsEl = document.getElementById('tarot-cards');
+  three.forEach((cardIdx, i) => {
+    const card = document.createElement('div');
+    card.className = 'tarot-card';
+    card.innerHTML = '✦';
+    card.onclick = function() {
+      if (card.classList.contains('flipped')) return;
+      card.classList.add('flipped');
+      card.innerHTML = `<span style="font-size:32px">${TAROT_EMOJI[cardIdx]}</span><span style="font-size:10px;position:absolute;bottom:6px;color:var(--gold)">${TAROT_NAMES[cardIdx]}</span>`;
+      flipped++;
+      if (flipped === 1) {
+        // Use this card for result
+        modalState.tarotName = TAROT_NAMES[cardIdx];
+        modalState.tarotNote = TAROT_NOTES[TAROT_NAMES[cardIdx]];
+        modalState.seed = cardIdx * 17 + Math.floor(Math.random()*100);
+        document.getElementById('tarot-hint').textContent = `✦ 你的命牌：${TAROT_NAMES[cardIdx]} ✦`;
+        document.getElementById('modal-submit').disabled = false;
+      }
+    };
+    cardsEl.appendChild(card);
+  });
+}
+
+// ─────────────────────────────────────────────
+// STICKS MODAL
+// ─────────────────────────────────────────────
+const STICK_POEMS = [
+  {num:'第一籤 上上', poem:'龍騰四海氣象新，今日口福自天來，山珍海味任君選，飽食一頓添福氣。', note:'上上籤！今日大吉，宜享用豐盛料理，不要委屈自己。'},
+  {num:'第七籤 上吉', poem:'春風得意馬蹄疾，食緣正旺莫遲疑，清淡素雅養精神，一飲一食皆是福。', note:'上吉籤，今日宜選清爽健康的料理，精神倍佳。'},
+  {num:'第十二籤 中平', poem:'雲捲雲舒自在心，飲食隨緣最為真，不必強求珍饈味，家常便飯亦芳馨。', note:'中平籤，今日平穩，家常料理最為適宜，知足常樂。'},
+  {num:'第廿三籤 中吉', poem:'金風玉露一相逢，今日食緣有奇緣，偶遇新店莫錯過，口齒留香記心間。', note:'中吉籤，今日適合嘗試新餐廳或新料理，有意外驚喜。'},
+  {num:'第卅一籤 下下', poem:'霧裡看花終隔山，今日食欲不甚佳，宜食清淡養腸胃，明日必有好時光。', note:'下下籤，今日腸胃需休養，選擇清淡易消化的食物為宜。'},
+  {num:'第四十籤 上上', poem:'鳳凰來儀百鳥朝，今日口福冠諸天，但凡所食皆美味，此生食緣屬今天。', note:'上上籤大吉！今天吃什麼都好吃，放心大膽選你最想吃的！'},
+];
+
+function renderSticksModal() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div id="sticks-wrap">
+      <p style="color:var(--text-dim);font-size:13px;margin-bottom:8px;">虔心默想「我今天該吃什麼」<br>搖動籤筒三次</p>
+      <div id="stick-container">🏺</div>
+      <div id="stick-result"></div>
+      <div id="stick-poem" style="font-size:12px;color:var(--text-dim);line-height:1.8;text-align:center;"></div>
+      <div id="stick-count" style="font-size:11px;color:var(--gold);margin-top:6px;"></div>
+    </div>
+  `;
+  let shakes = 0;
+  const stick = document.getElementById('stick-container');
+  stick.onclick = function() {
+    if (shakes >= 3) return;
+    stick.classList.remove('shake');
+    void stick.offsetWidth;
+    stick.classList.add('shake');
+    shakes++;
+    document.getElementById('stick-count').textContent = `已搖 ${shakes}/3 次`;
+    if (shakes === 3) {
+      const chosen = STICK_POEMS[Math.floor(Math.random()*STICK_POEMS.length)];
+      document.getElementById('stick-result').textContent = chosen.num;
+      document.getElementById('stick-poem').textContent = chosen.poem;
+      modalState.note = chosen.note;
+      modalState.label = chosen.num;
+      modalState.seed = Math.floor(Math.random()*9999);
+      document.getElementById('modal-submit').disabled = false;
+      stick.style.cursor = 'default';
+    }
+  };
+}
+
+// ─────────────────────────────────────────────
+// CRYSTAL MODAL
+// ─────────────────────────────────────────────
+const CRYSTAL_MSGS = [
+  '水晶感應到你今日需要大量能量補充……',
+  '靈光顯現——你的飲食應以暖色調食材為主……',
+  '水晶迷霧中浮現一片翠綠——清爽蔬食是今日所求……',
+  '深紫光芒閃現，神秘料理正等待你的發現……',
+  '水晶球微微發熱，暗示你今日宜食溫補之物……',
+  '冰藍光暈——海洋之物與你今日緣分深厚……',
+];
+
+function renderCrystalModal() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div id="crystal-wrap">
+      <div id="crystal-ball">凝視<br>水晶球</div>
+      <div id="crystal-msg" style="font-size:12px;color:var(--text-dim);text-align:center;min-height:40px;line-height:1.8;margin-top:8px;font-style:italic;"></div>
+    </div>
+  `;
+  let gazed = 0;
+  const ball = document.getElementById('crystal-ball');
+  ball.onclick = function() {
+    gazed++;
+    const msg = CRYSTAL_MSGS[Math.floor(Math.random()*CRYSTAL_MSGS.length)];
+    document.getElementById('crystal-msg').textContent = msg;
+    ball.style.boxShadow = `0 0 ${30+gazed*20}px rgba(64,224,192,${0.2+gazed*0.15}), inset 0 0 ${20+gazed*15}px rgba(144,96,224,${0.1+gazed*0.1})`;
+    if (gazed >= 3) {
+      ball.textContent = '✦';
+      ball.style.color = 'var(--gold)';
+      modalState.note = msg + '你的潛意識已知曉答案。';
+      modalState.seed = Math.floor(Math.random()*9999);
+      document.getElementById('modal-submit').disabled = false;
+      ball.onclick = null;
+    }
+  };
+}
+
+// ─────────────────────────────────────────────
+// PENDULUM MODAL
+// ─────────────────────────────────────────────
+function renderPendulumModal() {
+  const body = document.getElementById('modal-body');
+  body.innerHTML = `
+    <div id="pendulum-wrap">
+      <p id="pendulum-question" style="color:var(--text-dim);font-size:12px;text-align:center;margin-bottom:8px;">靜心觀察靈擺方向，感應今日食緣</p>
+      <svg id="pendulum-svg" width="200" height="160" viewBox="0 0 200 160">
+        <line x1="100" y1="10" x2="100" y2="70" stroke="rgba(240,192,96,0.4)" stroke-width="1"/>
+        <circle id="pend-ball" cx="100" cy="80" r="14" fill="none" stroke="var(--gold)" stroke-width="2"/>
+        <text id="pend-symbol" x="100" y="85" text-anchor="middle" fill="var(--gold)" font-size="14" font-family="serif">◈</text>
+        <text x="20" y="150" fill="rgba(64,224,192,0.5)" font-size="11" font-family="Noto Serif TC">海鮮</text>
+        <text x="80" y="155" fill="rgba(240,192,96,0.5)" font-size="11" font-family="Noto Serif TC">家常菜</text>
+        <text x="150" y="150" fill="rgba(255,96,160,0.5)" font-size="11" font-family="Noto Serif TC">異國料理</text>
+      </svg>
+      <p id="pend-result" style="text-align:center;color:var(--gold);font-size:14px;font-family:'Ma Shan Zheng',serif;min-height:24px;"></p>
+      <p style="text-align:center;color:var(--text-dim);font-size:11px;">點擊啟動靈擺</p>
+    </div>
+  `;
+  let running = false; let done = false;
+  const svg = document.getElementById('pendulum-svg');
+  const ball = document.getElementById('pend-ball');
+  const sym = document.getElementById('pend-symbol');
+  const CATEGORIES = ['海鮮料理','家常菜餚','異國料理'];
+  svg.onclick = function() {
+    if (running || done) return;
+    running = true;
+    const dur = 4000; const start = performance.now();
+    const amplitude = 60;
+    const pivot = {x:100, y:10};
+    const length = 70;
+    function frame(now) {
+      const t = (now-start)/dur;
+      if (t>=1) {
+        // final position
+        const finalAngle = (Math.random()-0.5)*0.6;
+        const bx = pivot.x + Math.sin(finalAngle)*length;
+        const by = pivot.y + Math.cos(finalAngle)*length;
+        ball.setAttribute('cx', bx); ball.setAttribute('cy', by);
+        sym.setAttribute('x', bx); sym.setAttribute('y', by+5);
+        // Determine category
+        const idx = bx < 90 ? 0 : bx > 115 ? 2 : 1;
+        document.getElementById('pend-result').textContent = `靈擺指向：${CATEGORIES[idx]}`;
+        modalState.category = CATEGORIES[idx];
+        modalState.seed = Math.floor(Math.random()*9999);
+        document.getElementById('modal-submit').disabled = false;
+        running = false; done = true;
+        return;
+      }
+      const decay = 1 - t;
+      const angle = Math.sin(t*Math.PI*8) * amplitude * decay * (Math.PI/180);
+      const bx = pivot.x + Math.sin(angle)*length;
+      const by = pivot.y + Math.cos(angle)*length;
+      ball.setAttribute('cx',bx); ball.setAttribute('cy',by);
+      sym.setAttribute('x',bx); sym.setAttribute('y',by+5);
+      const lineEl = document.querySelector('#pendulum-svg line');
+      lineEl.setAttribute('x2',bx); lineEl.setAttribute('y2',by-14);
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  };
+}
+
+// ─────────────────────────────────────────────
+// SUBMIT MODAL
+// ─────────────────────────────────────────────
+function submitModal() {
+  const m = currentMethod;
+  if (!m) return;
+  let seed = modalState.seed || Math.floor(Math.random()*9999);
+  let title = '今日三餐天機已定';
+  let note = '命運如此，好好享用吧。';
+
+  switch(m.type) {
+    case 'zodiac': {
+      const i = modalState.index || 0;
+      seed = i * 100 + new Date().getDate();
+      title = `${m.options[i]} 今日食運`;
+      note = m.notes[i];
+      break;
+    }
+    case 'shengxiao': {
+      const i = modalState.index || 0;
+      seed = i * 77 + new Date().getDate();
+      title = `${m.options[i]} 今日食緣`;
+      note = m.notes[i];
+      break;
+    }
+    case 'bazi': {
+      const i = modalState.index || 0;
+      seed = i * 53 + new Date().getDate();
+      title = `${m.options[i]}出生者今日食補`;
+      note = m.notes[i];
+      break;
+    }
+    case 'mbti': {
+      const label = modalState.label || 'INTJ';
+      seed = label.split('').reduce((a,c)=>a+c.charCodeAt(0),0) + new Date().getDate();
+      title = `${label} 今日飲食密碼`;
+      note = m.notes[label] || '今日飲食由人格引導。';
+      break;
+    }
+    case 'tarot': {
+      title = `塔羅命牌：${modalState.tarotName}`;
+      note = modalState.tarotNote;
+      break;
+    }
+    case 'dice': {
+      title = `骰子總點數 ${modalState.seed} 的命運`;
+      note = `宇宙透過骰子說話——點數 ${modalState.seed} 注定了你今日的食緣。`;
+      break;
+    }
+    case 'wheel': {
+      title = `命運之輪指向：${modalState.category}`;
+      note = `轉盤從不說謊，今日你與「${modalState.category}」有不解之緣。`;
+      break;
+    }
+    case 'sticks': {
+      title = modalState.label || '籤詩天啟';
+      note = modalState.note || '';
+      break;
+    }
+    case 'crystal': {
+      title = '水晶球感應結果';
+      note = modalState.note || '';
+      break;
+    }
+    case 'pendulum': {
+      title = `靈擺指引：${modalState.category}`;
+      note = `靈擺絕不欺騙潛意識，你內心早已知道今天想吃「${modalState.category}」。`;
+      break;
+    }
+  }
+
+  // Mark daily used — save result so it can be replayed
+  if (m.daily) {
+    usedDaily[m.id] = { title, note, seed };
+    saveUsed();
+    renderGrid();
+  }
+
+  closeModal();
+  showResult(m, title, note, seed);
+}
+
+</script>
+</body>
+</html>
